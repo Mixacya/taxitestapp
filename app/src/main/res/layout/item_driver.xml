@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="@dimen/itemDriverHeight"
+    android:padding="@dimen/tvDriverCommonFieldOffset"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <ImageView
+        android:id="@+id/ivDriverIcon"
+        android:layout_width="@dimen/ivDriverIconSize"
+        android:layout_height="@dimen/ivDriverIconSize"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        tools:src="@color/colorPrimary"/>
+
+    <TextView
+        android:id="@+id/tvDriverTitle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginLeft="@dimen/tvDriverCommonFieldOffset"
+        android:layout_marginRight="@dimen/tvDriverCommonFieldOffset"
+        app:layout_constraintLeft_toRightOf="@id/ivDriverIcon"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toTopOf="@id/tvDriverDescription"
+        tools:text="List Item Title" />
+
+    <TextView
+        android:id="@+id/tvDriverDescription"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginLeft="@dimen/tvDriverCommonFieldOffset"
+        android:layout_marginRight="@dimen/tvDriverCommonFieldOffset"
+        app:layout_constraintLeft_toRightOf="@id/ivDriverIcon"
+        app:layout_constraintTop_toBottomOf="@id/tvDriverTitle"
+        app:layout_constraintBottom_toBottomOf="parent"
+        tools:text="Description" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>

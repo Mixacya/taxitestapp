@@ -1,0 +1,12 @@
+<resources>
+    <string name="app_name">TaxiTestApp</string>
+    <string name="nav_header_title">Android Studio</string>
+    <string name="nav_header_subtitle">android.studio@android.com</string>
+    <string name="nav_header_desc">Navigation header</string>
+
+    <string name="menu_map">Map</string>
+    <string name="menu_driver">Driver</string>
+    <string name="menu_info">Info</string>
+
+    <string name="api_key">AIzaSyAnlW4fMO5CzA8S_IuAsi8XRXRWaD0M2Q0</string>
+</resources>
