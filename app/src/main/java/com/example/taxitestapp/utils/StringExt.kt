@@ -1,11 +1,10 @@
 package com.example.taxitestapp.utils
 
 import android.location.Location
-import android.location.LocationManager
-import android.location.LocationProvider
 import android.util.Log
 import com.google.android.gms.maps.model.LatLng
 import java.lang.NumberFormatException
+import java.util.*
 
 fun String.parseLocation(): LatLng? {
     val parts = this.split(':')
@@ -18,5 +17,5 @@ fun String.parseLocation(): LatLng? {
 }
 
 fun Location.string(): String {
-    return String.format("%.6f:%.6f", this.latitude, this.longitude)
+    return String.format(Locale.US, "%.6f:%.6f", this.latitude, this.longitude)
 }

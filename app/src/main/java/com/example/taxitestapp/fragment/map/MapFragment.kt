@@ -13,6 +13,7 @@ import com.example.taxitestapp.R
 import com.example.taxitestapp.rxbus.RxBus
 import com.example.taxitestapp.rxbus.RxEvent
 import com.example.taxitestapp.utils.LocationPreferences
+import com.example.taxitestapp.utils.askTurnLocationIfNeeded
 import com.example.taxitestapp.utils.parseLocation
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices
@@ -22,12 +23,15 @@ import com.google.android.gms.maps.OnMapReadyCallback
 import com.google.android.gms.maps.SupportMapFragment
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.MarkerOptions
+import io.reactivex.disposables.Disposable
 
 class MapFragment : Fragment(), OnMapReadyCallback {
 
     private lateinit var mapViewModel: MapViewModel
     private lateinit var map: GoogleMap
     private lateinit var fusedLocationClient: FusedLocationProviderClient
+
+    private var disposable: Disposable? = null
 
     companion object {
         val MY_LOCATION_REQUEST_CODE = 100
@@ -41,12 +45,6 @@ class MapFragment : Fragment(), OnMapReadyCallback {
         mapViewModel =
             ViewModelProviders.of(this).get(MapViewModel::class.java)
         return inflater.inflate(R.layout.fragment_map, container, false)
-
-//TODO: DELETE        /*VIEW MODEL FROM GOOGLE*/
-//        val textView: TextView = root.findViewById(R.id.text_home)
-//        homeViewModel.text.observe(this, Observer {
-//            textView.text = it
-//        })
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
@@ -55,6 +53,7 @@ class MapFragment : Fragment(), OnMapReadyCallback {
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(activity!!)
         mapFragment.getMapAsync(this)
 
+        activity?.askTurnLocationIfNeeded(1005) { }
     }
 
     override fun onStart() {
@@ -70,6 +69,11 @@ class MapFragment : Fragment(), OnMapReadyCallback {
         }
     }
 
+    override fun onDestroyView() {
+        super.onDestroyView()
+        disposable?.dispose()
+    }
+
     override fun onMapReady(googleMap: GoogleMap?) {
         if (googleMap == null) {
             return
@@ -78,14 +82,14 @@ class MapFragment : Fragment(), OnMapReadyCallback {
         activity?.let { context ->
 
             if (ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION)
-                == PackageManager.PERMISSION_GRANTED) {
+                == PackageManager.PERMISSION_GRANTED
+            ) {
                 map.isMyLocationEnabled = true
             } else {
                 val array = arrayOf(Manifest.permission.ACCESS_FINE_LOCATION)
                 requestPermissions(array, MY_LOCATION_REQUEST_CODE)
             }
 
-//            var position = LatLng(46.971321, 32.004195)
             val locationLine = LocationPreferences.getLastLocation(context)
             if (!locationLine.isNullOrEmpty()) {
                 val position = locationLine.parseLocation()
@@ -98,13 +102,16 @@ class MapFragment : Fragment(), OnMapReadyCallback {
             }
             map.setOnMyLocationButtonClickListener {
                 fusedLocationClient.lastLocation.addOnSuccessListener { location ->
-                    val newPosition = LatLng(location.latitude, location.longitude)
-                    refreshMap(newPosition)
+                    location?.let{
+                        val newPosition = LatLng(location.latitude, location.longitude)
+                        refreshMap(newPosition)
+                    }
+
                 }
 
                 true
             }
-            RxBus.listen(RxEvent.EventLocation::class.java).subscribe {
+            disposable = RxBus.listen(RxEvent.EventLocation::class.java).subscribe {
                 it.location?.let { locationData ->
                     val location = LatLng(locationData.latitude, locationData.longitude)
                     refreshMap(location)
@@ -123,7 +130,11 @@ class MapFragment : Fragment(), OnMapReadyCallback {
             MY_LOCATION_REQUEST_CODE -> {
                 if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                     activity?.let {
-                        if (ContextCompat.checkSelfPermission(it, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+                        if (ContextCompat.checkSelfPermission(
+                                it,
+                                Manifest.permission.ACCESS_FINE_LOCATION
+                            ) == PackageManager.PERMISSION_GRANTED
+                        ) {
                             map.isMyLocationEnabled = true
                         }
                     }

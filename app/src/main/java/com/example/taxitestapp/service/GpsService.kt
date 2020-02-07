@@ -6,6 +6,7 @@ import android.app.NotificationManager
 import android.app.Service
 import android.content.Context
 import android.content.Intent
+import android.location.Criteria
 import android.location.Location
 import android.location.LocationListener
 import android.os.Bundle
@@ -14,7 +15,6 @@ import android.location.LocationManager
 import android.os.Build
 import android.util.Log
 import androidx.core.app.NotificationCompat
-import androidx.core.app.NotificationManagerCompat
 import com.example.taxitestapp.R
 import com.example.taxitestapp.rxbus.RxBus
 import com.example.taxitestapp.rxbus.RxDistance
@@ -25,7 +25,7 @@ import kotlin.math.atan2
 import kotlin.math.cos
 import kotlin.math.sin
 import kotlin.math.sqrt
-
+import io.reactivex.disposables.Disposable
 
 private const val TAG = "GpsService"
 
@@ -48,16 +48,18 @@ class GpsService : Service(), LocationListener {
             }
         }
 
-    private var isGPSEnabled = false
     private var distanceBetweenPoints: Double = 0.0
         set(value) {
             field = value
             RxBus.publish(RxDistance.EventDistance(value))
             LocationPreferences.setDistance(this, value.toFloat())
         }
+    private var locationTurnOnDisposable: Disposable? = null
+    private lateinit var locationManager: LocationManager
 
     override fun onCreate() {
         super.onCreate()
+        locationManager = getSystemService(Context.LOCATION_SERVICE) as LocationManager
         createNotificationChannel()
         var builder = NotificationCompat.Builder(this, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_menu_map)
@@ -67,9 +69,7 @@ class GpsService : Service(), LocationListener {
             .setAutoCancel(false)
 
         startForeground(1, builder.build())
-//        with(NotificationManagerCompat.from(this)) {
-//            notify(1, builder.build())
-//        }
+
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -80,6 +80,7 @@ class GpsService : Service(), LocationListener {
     override fun onDestroy() {
         super.onDestroy()
         stopForeground(true)
+        locationTurnOnDisposable?.dispose()
     }
 
     override fun onLocationChanged(newLocation: Location?) {
@@ -99,10 +100,8 @@ class GpsService : Service(), LocationListener {
 
     @SuppressLint("MissingPermission")
     private fun findLocation(): Location? {
-        val locationManager = getSystemService(Context.LOCATION_SERVICE) as LocationManager
-        isGPSEnabled = locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)
         try {
-            if (isGPSEnabled) {
+            if (locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
                 if (location == null) {
                     locationManager.requestLocationUpdates(
                         LocationManager.GPS_PROVIDER,
@@ -112,7 +111,10 @@ class GpsService : Service(), LocationListener {
                     )
                     location = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER)
                 }
-//                RxBus.publish(RxEvent.EventLocation(location))
+            } else {
+                locationTurnOnDisposable = RxBus.listen(RxEvent.EventLocationTurnOn::class.java).subscribe {
+                    location = locationManager.getLastKnownLocation(LocationManager.PASSIVE_PROVIDER)
+                }
             }
         } catch (e: Exception) {
             Log.e(TAG, "Can't find location", e)
@@ -122,13 +124,17 @@ class GpsService : Service(), LocationListener {
 
     private fun createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val importance = NotificationManager.IMPORTANCE_DEFAULT
-            val channel = NotificationChannel(CHANNEL_ID, "GPS", importance).apply {
-                description = "Tracking for gps"
-            }
+            val importance = NotificationManager.IMPORTANCE_NONE
+
             val notificationManager: NotificationManager =
                 getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-            notificationManager.createNotificationChannel(channel)
+
+            if (notificationManager.getNotificationChannel(CHANNEL_ID) == null) {
+                val channel = NotificationChannel(CHANNEL_ID, "GPS", importance).apply {
+                    description = "Tracking for gps"
+                }
+                notificationManager.createNotificationChannel(channel)
+            }
         }
     }
 

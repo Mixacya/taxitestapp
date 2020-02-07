@@ -9,8 +9,6 @@ class App : Application() {
     override fun onCreate() {
         super.onCreate()
 
-        startService(Intent(this, GpsService::class.java))
-
     }
 
 }
